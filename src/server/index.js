@@ -12,8 +12,8 @@ app.use(cors({
     origin: '*',
     credentials: true,
 }))
-app.use(ErrorHandler);
 app.use('/api', routes);
+app.use(ErrorHandler);
 
 
 export default app;
