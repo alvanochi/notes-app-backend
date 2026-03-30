@@ -1,0 +1,36 @@
+import InvariantError from '../../../exceptions/invariant-error.js';
+import response from '../../../utils/response.js';
+import NoteRepositories from '../../notes/repositories/notes-repositories.js';
+import AuthorizationError from '../../../exceptions/authorization-error.js';
+import CollaborationRepositories from '../repositories/collaborations-repositories.js';
+
+export const addCollaboration = async (req, res, next) => {
+    const { id: credentialId } = req.user;
+    const { noteId, userId } = req.validated;
+
+    const isOwner = await NoteRepositories.verifyNoteOwner(noteId, credentialId);
+    if (!isOwner) {
+        return next(new AuthorizationError('Anda tidak berhak mengakses resource ini'));
+    }
+
+    const collaboration = await CollaborationRepositories.addCollaboration(noteId, userId);
+    if (!collaboration) {
+        return next(new InvariantError('Kolaborasi gagal ditambahkan'));
+    }
+
+    return response(res, 201, 'Kolaborasi berhasil ditambahkan', { collaborationId: collaboration });
+};
+
+export const deleteCollaboration = async (req, res, next) => {
+    const { noteId, userId } = req.validated;
+    const { id: credentialId } = req.user;
+
+    const isOwner = await NoteRepositories.verifyNoteOwner(noteId, credentialId);
+    if (!isOwner) {
+        return next(new AuthorizationError('Anda tidak berhak mengakses resource ini'));
+    }
+
+    await CollaborationRepositories.deleteCollaboration(noteId, userId);
+
+    return response(res, 200, 'Kolaborasi berhasil dihapus', '');
+};

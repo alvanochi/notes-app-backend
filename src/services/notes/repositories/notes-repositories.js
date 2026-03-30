@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { nanoid } from 'nanoid';
+import collaborationsRepositories from '../../collaborations/repositories/collaborations-repositories.js';
 
 class NoteRepositories {
     constructor() {
@@ -15,6 +16,8 @@ class NoteRepositories {
                 ? { rejectUnauthorized: false }
                 : false,
         });
+
+        this.collaborationsRepositories = collaborationsRepositories;
     }
 
     async createNote({ title, body, tags, owner }) {
@@ -22,16 +25,20 @@ class NoteRepositories {
         const createdAt = new Date().toISOString();
         const updatedAt = createdAt;
         const query = {
-            text: 'INSERT INTO notes(id, title, body, tags, created_at, updated_at, owner) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id, title, body, tags, created_at, updated_at',
+            text: 'INSERT INTO notes(id, title, body, tags, created_at, updated_at, owner) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id, title, body, tags, created_at, updated_at, owner',
             values: [id, title, body, tags, createdAt, updatedAt, owner],
         };
+
         const result = await this.pool.query(query);
         return result.rows[0];
     }
 
     async getNotes(owner) {
         const query = {
-            text: 'SELECT * FROM notes WHERE owner = $1',
+            text: `SELECT notes.* FROM notes
+            LEFT JOIN collaborations ON collaborations.note_id = notes.id
+            WHERE notes.owner = $1 OR collaborations.user_id = $1
+            GROUP BY notes.id`,
             values: [owner],
         };
         const result = await this.pool.query(query);
@@ -40,10 +47,12 @@ class NoteRepositories {
 
     async getNoteById(id) {
         const query = {
-            text: 'SELECT * FROM notes WHERE id = $1',
+            text: `SELECT notes.*, users.username
+            FROM notes
+            LEFT JOIN users ON users.id = notes.owner
+            WHERE notes.id = $1`,
             values: [id],
         };
-
         const result = await this.pool.query(query);
         return result.rows[0];
     }
@@ -89,6 +98,18 @@ class NoteRepositories {
             return null;
         }
         return result.rows[0];
+    }
+
+    async verifyNoteAccess(noteId, userId) {
+        const ownerResult = await this.verifyNoteOwner(noteId, userId);
+
+        if (ownerResult) {
+            return ownerResult;
+        }
+
+        const result = await this.collaborationsRepositories.verifyCollaborator(noteId, userId);
+
+        return result;
     }
 }
 
