@@ -8,6 +8,7 @@ import ErrorHandler from '../middlewares/error.js'
 const app = express();
 
 app.use(express.json());
+app.use('/uploads', express.static('src/services/uploads/files/images'));
 app.use(cors({
     origin: '*',
     credentials: true,
