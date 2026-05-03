@@ -3,7 +3,8 @@ import { nanoid } from 'nanoid';
 
 class CollaborationRepositories {
     constructor() {
-        this.pool = new Pool();
+        const useSSL = process.env.PGSSLMODE === 'require';
+        this.pool = new Pool(useSSL ? { ssl: { rejectUnauthorized: false } } : {});
     }
 
     async addCollaboration(noteId, userId) {

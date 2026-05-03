@@ -2,7 +2,8 @@ import { Pool } from 'pg';
 
 class AuthenticationRepositories {
     constructor() {
-        this.pool = new Pool();
+        const useSSL = process.env.PGSSLMODE === 'require';
+        this.pool = new Pool(useSSL ? { ssl: { rejectUnauthorized: false } } : {});
     }
 
     async addRefreshToken(token) {

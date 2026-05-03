@@ -4,7 +4,8 @@ import bcrypt from 'bcrypt';
 
 class UserRepositories {
     constructor() {
-        this.pool = new Pool();
+        const useSSL = process.env.PGSSLMODE === 'require';
+        this.pool = new Pool(useSSL ? { ssl: { rejectUnauthorized: false } } : {});
     }
 
     async createUser({ username, password, fullname }) {
