@@ -1,10 +1,12 @@
 import { Pool } from 'pg';
 import { nanoid } from 'nanoid';
+import CacheService from '../../cache/redis-service.js';
 
 class CollaborationRepositories {
     constructor() {
         const useSSL = process.env.PGSSLMODE === 'require';
         this.pool = new Pool(useSSL ? { ssl: { rejectUnauthorized: false } } : {});
+        this.cacheService = new CacheService();
     }
 
     async addCollaboration(noteId, userId) {
@@ -16,6 +18,8 @@ class CollaborationRepositories {
         };
 
         const result = await this.pool.query(query);
+
+        await this.cacheService.delete(`notes:${userId}`);
         return result.rows[0].id;
     }
 
@@ -26,6 +30,8 @@ class CollaborationRepositories {
         };
 
         const result = await this.pool.query(query);
+
+        await this.cacheService.delete(`notes:${userId}`);
 
         return result.rows[0];
     }
